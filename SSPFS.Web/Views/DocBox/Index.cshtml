@@ -1,0 +1,24 @@
+@model IEnumerable<SSPFS.RemoteFile>
+
+<h2>Documentos</h2>
+<h3>Listado</h3>
+
+<a href="@Url.Action(nameof(SSPFS.Web.Controllers.DocBoxController.Upload), new {id = ViewBag.RepoId })">Subir Fichero</a>
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach(var item in Model)
+        {
+            <tr>
+                <td>
+                    <a href="@Url.Action(nameof(SSPFS.Web.Controllers.DocBoxController.Download), new { id = ViewBag.RepoId, name = @item.Name })">@item.Name</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+   
