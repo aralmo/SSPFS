@@ -22,8 +22,6 @@ namespace SSPFS.Web
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
-
-            ServerAPI.Current = new ServerAPI();
             services.AddSingleton<ServerAPI>(ServerAPI.Current);
         }
 
