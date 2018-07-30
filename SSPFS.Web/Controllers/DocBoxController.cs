@@ -33,18 +33,13 @@ namespace SSPFS.Web.Controllers
             return File(stream, System.Net.Mime.MediaTypeNames.Application.Octet, name);
         }
 
-
-        [HttpGet]
-        public IActionResult Upload(Guid id)
-        {
-            return View();
-        }
-
         [HttpPost]
+        // [RequestSizeLimit(100_000_000)]
+        [DisableRequestSizeLimit]
         public IActionResult Upload(Guid id, IFormFile file)
         {
             _serverApi.UploadFile(id, file.FileName, file.OpenReadStream());
-            return RedirectToAction(nameof(Index), new { id = id });
+            return Json(new { OK = 1 });
         }
     }
 }
