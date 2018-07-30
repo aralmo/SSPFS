@@ -22,6 +22,8 @@ namespace SSPFS
         /// </summary>
         public event RemoteFolderDisconnectedEventHandler RemoteFolderDisconnected;
 
+        string BasePath = "/home/yoni/Documentos/Repos/Docs";
+
         /// <summary>
         /// Lista los ficheros en el cliente
         /// </summary>
@@ -29,7 +31,8 @@ namespace SSPFS
         /// <returns></returns>
         public IEnumerable<RemoteFile> ListFiles(Guid identifier)
         {
-            throw new NotImplementedException();
+            return Directory.EnumerateFiles(Path.Combine(BasePath, identifier.ToString()))
+                .Select(x => new RemoteFile() { Name = Path.GetFileName(x) });
         }
 
         /// <summary>
@@ -40,7 +43,8 @@ namespace SSPFS
         /// <param name="file"></param>
         public void UploadFile(Guid identifier, string filename, Stream file)
         {
-            throw new NotImplementedException();
+            using (var result = File.Create(Path.Combine(BasePath, identifier.ToString(), filename)))
+                file.CopyTo(result);
         }
 
         /// <summary>
@@ -50,9 +54,9 @@ namespace SSPFS
         /// <param name="filename"></param>
         /// <param name="file"></param>
         /// <returns></returns>
-        public Stream DownloadFile(Guid identifier, string filename, Stream file)
+        public Stream DownloadFile(Guid identifier, string filename)
         {
-            throw new NotImplementedException();
+            return File.OpenRead(Path.Combine(BasePath, identifier.ToString(), filename));
         }
     }
 }
