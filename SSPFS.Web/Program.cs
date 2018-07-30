@@ -13,6 +13,9 @@ namespace SSPFS.Web
 {
     public class Program
     {
+
+        public static IServiceProvider Services { get; private set;}
+
         public static void Main(string[] args)
         {
             //iniciamos el host que va a escuchar por las solicitudes de compartir de los clientes de escrotorio
@@ -20,7 +23,9 @@ namespace SSPFS.Web
             host.StartListening();
 
             //webapp
-            BuildWebHost(args).Run();
+            var webHost = BuildWebHost(args);
+            Services = webHost.Services;
+            webHost.Run();
         }
 
         public static IWebHost BuildWebHost(string[] args) =>

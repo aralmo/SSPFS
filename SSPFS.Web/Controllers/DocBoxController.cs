@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using SSPFS.Web.Models;
 
 namespace SSPFS.Web.Controllers
@@ -40,6 +41,13 @@ namespace SSPFS.Web.Controllers
         {
             _serverApi.UploadFile(id, file.FileName, file.OpenReadStream());
             return Json(new { OK = 1 });
+        }
+
+        public IActionResult Refresh(Guid id)
+        {
+            var context = (IHubContext<Hubs.DocBoxHub>)Program.Services.GetService(typeof(IHubContext<Hubs.DocBoxHub>));
+            context.Clients.Group(id.ToString()).SendAsync("FolderHasChanged");                
+            return Ok();
         }
     }
 }
