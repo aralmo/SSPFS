@@ -21,28 +21,6 @@ namespace SSPFS.Web
             ServerHost host = new ServerHost(new System.Net.IPEndPoint(IPAddress.Any, 1666));
             ServerHost.Current = host;
             host.Start();
-            bool notdone = true;
-            while (true)
-            {
-                System.Threading.Thread.Sleep(100);
-                if (host.Hosts.Any())
-                {
-                    if (notdone)
-                    {
-                        var list_files_task = ServerAPI.Current.ListFiles(host.Hosts.First().Key);
-                        while (!list_files_task.GetAwaiter().IsCompleted)
-                        {
-                            Thread.Sleep(100);
-                        }
-
-                        foreach (var file in list_files_task.Result)
-                        {
-
-                        }
-                        notdone = false;
-                    }
-                }
-            }
                 
             //webapp
             BuildWebHost(args).Run();

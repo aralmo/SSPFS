@@ -35,6 +35,8 @@
             this.lbEstado = new System.Windows.Forms.Label();
             this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
             this.button1 = new System.Windows.Forms.Button();
+            this.tburl = new System.Windows.Forms.TextBox();
+            this.button2 = new System.Windows.Forms.Button();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.flowLayoutPanel1.SuspendLayout();
@@ -76,7 +78,7 @@
             // tbLog
             // 
             this.tbLog.Anchor = System.Windows.Forms.AnchorStyles.Top;
-            this.tbLog.Location = new System.Drawing.Point(3, 83);
+            this.tbLog.Location = new System.Drawing.Point(3, 111);
             this.tbLog.Multiline = true;
             this.tbLog.Name = "tbLog";
             this.tbLog.ReadOnly = true;
@@ -100,14 +102,14 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.flowLayoutPanel1.Controls.Add(this.lbEstado);
             this.flowLayoutPanel1.Controls.Add(this.lbCarpeta);
-            this.flowLayoutPanel1.Location = new System.Drawing.Point(3, 53);
+            this.flowLayoutPanel1.Location = new System.Drawing.Point(3, 81);
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
             this.flowLayoutPanel1.Size = new System.Drawing.Size(571, 24);
             this.flowLayoutPanel1.TabIndex = 3;
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(579, 53);
+            this.button1.Location = new System.Drawing.Point(579, 81);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(29, 23);
             this.button1.TabIndex = 4;
@@ -115,12 +117,32 @@
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
+            // tburl
+            // 
+            this.tburl.Location = new System.Drawing.Point(3, 53);
+            this.tburl.Name = "tburl";
+            this.tburl.ReadOnly = true;
+            this.tburl.Size = new System.Drawing.Size(524, 20);
+            this.tburl.TabIndex = 5;
+            // 
+            // button2
+            // 
+            this.button2.Location = new System.Drawing.Point(533, 52);
+            this.button2.Name = "button2";
+            this.button2.Size = new System.Drawing.Size(75, 23);
+            this.button2.TabIndex = 6;
+            this.button2.Text = "copiar";
+            this.button2.UseVisualStyleBackColor = true;
+            this.button2.Click += new System.EventHandler(this.button2_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            this.ClientSize = new System.Drawing.Size(610, 80);
+            this.ClientSize = new System.Drawing.Size(610, 253);
+            this.Controls.Add(this.button2);
+            this.Controls.Add(this.tburl);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.flowLayoutPanel1);
             this.Controls.Add(this.tbLog);
@@ -147,5 +169,7 @@
         public System.Windows.Forms.Label lbEstado;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel1;
         private System.Windows.Forms.Button button1;
+        public System.Windows.Forms.TextBox tburl;
+        private System.Windows.Forms.Button button2;
     }
 }

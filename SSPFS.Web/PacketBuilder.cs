@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace SSPFS.Web
@@ -9,7 +10,15 @@ namespace SSPFS.Web
     {
         public static byte[] ListFilesForClientPacket()
         {
-            return new ClientToServerPacket(1, 0).GetBytes();
+            return new ClientToServerPacket((int) PacketTypeEnum.ListFiles, 0).GetBytes();
+        }
+        public static byte[] RequestFileForDownload(string filename)
+        {
+            var filename_bytes = Encoding.UTF8.GetBytes(filename);
+
+            return
+                new ClientToServerPacket((int)PacketTypeEnum.DownloadFile, filename_bytes.Length)
+                .GetBytes(filename_bytes);
         }
 
         class ClientToServerPacket
@@ -23,10 +32,12 @@ namespace SSPFS.Web
                 this.request_length = request_length;
             }
 
-            public byte[] GetBytes()
+            public byte[] GetBytes(byte[] content = null)
             {
-                return BitConverter.GetBytes(request_code)
-                    .Concat(BitConverter.GetBytes(request_length)).ToArray();
+                var bytes = BitConverter.GetBytes(request_code)
+                    .Concat(BitConverter.GetBytes(request_length));
+
+                return content == null ? bytes.ToArray() : bytes.Concat(content).ToArray();
             }
         }
     }

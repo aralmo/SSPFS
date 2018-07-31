@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace SSPFS
@@ -13,7 +15,8 @@ namespace SSPFS
         private Guid current_response_identifier = Guid.Empty;
         private long current_response_length = 0;
 
-        private Queue<Request> requests_queue = new Queue<Request>();
+        private object request_queue_lock = new object();
+        private List<Request> requests_queue = new List<Request>();
         private object requests_queue_lock = new object();
 
         public Guid Identifier { get; } = Guid.NewGuid();
@@ -77,9 +80,20 @@ namespace SSPFS
                 if (CurrentStatus == HostClientStatusEnum.RecibiendoRespuesta)
                 {
                     //descargar contenido de respuesta.
-                    var request = requests_queue.FirstOrDefault(x => x.RequestIdentifier == current_response_identifier);
+                    Request request;
+                    lock (request_queue_lock)
+                    {
+                        request = requests_queue.FirstOrDefault(x => x.RequestIdentifier == current_response_identifier);
+                    }
+
                     if (request != null && request.Callback != null)
                     {
+                        //desencolamos la request                        
+                        lock (request_queue_lock)
+                        {
+                            requests_queue.Remove(request);
+                        }
+
                         //delegamos el procesamiento de la respuesta a la callback
                         request.Callback(stream, current_response_length);
                     }
@@ -97,15 +111,26 @@ namespace SSPFS
         /// <param name="message_code"></param>
         private void ProcessClientMessage(long message_code)
         {
-            if (message_code == 1)
+            lock (requests_queue_lock)
             {
-                ServerAPI.Current.ReportRemoteHostChanged(Identifier);
+                if (message_code == 1)
+                {
+                    ServerAPI.Current.ReportRemoteHostChanged(Identifier);
+                }
+                if (message_code == 2)
+                {
+                    //do nothing it's a keep alive.
+                }
+                if (message_code == 3)
+                {
+                    //solicitud de URL de acceso externa
+                    string url = "http://localhost:22675/docbox/index/" + Identifier.ToString();
+                    byte[] url_bytes = Encoding.UTF8.GetBytes(url);
+                    int size = url_bytes.Length;
+                    var pck = BitConverter.GetBytes(size).Concat(url_bytes).ToArray();
+                    client.GetStream().Write(pck, 0, pck.Length);
+                }
             }
-            if (message_code == 2)
-            {
-                //do nothing it's a keep alive.
-            }
-
         }
 
         public void EnqueueRequest(byte[] data, ServerHost.ProcessClientResponseDelegateHandler callback)
@@ -115,19 +140,22 @@ namespace SSPFS
                 RequestData = data,
                 Callback = callback
             };
-            
+
             lock (requests_queue_lock)
             {
-                requests_queue.Enqueue(request);
+                requests_queue.Add(request);
             }
+
 
             var request_bytes = request.RequestIdentifier
                 .ToByteArray()
                 .Concat(data)
                 .ToArray();
 
-            client.GetStream().Write(request_bytes, 0, request_bytes.Length);
-
+            lock (requests_queue_lock)
+            {
+                client.GetStream().Write(request_bytes, 0, request_bytes.Length);
+            }
         }
 
         internal void Disconnect()

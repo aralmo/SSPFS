@@ -24,7 +24,7 @@ namespace SSPFS.DesktopHost
         Task Connection_daemon;
         TcpClient client = new TcpClient();
 
-        int retry = 5;
+        int retry = 20;
 
         public Client(string folder)
         {
@@ -39,7 +39,6 @@ namespace SSPFS.DesktopHost
                 {
                     if (CheckConnection())
                     {
-                        retry = 20;
                         ProcessIncomingRequests();
                         Program.Form.Invoke(new MethodInvoker(() =>
                         {
@@ -113,7 +112,13 @@ namespace SSPFS.DesktopHost
                 {
                     //intentamos conectar el cliente
                     client.Connect(new IPEndPoint(IPAddress.Parse(Host), Port));
-                    send_keepalive();
+                    string url = request_remote_url();
+
+                    Program.Form.Invoke(new MethodInvoker(() =>
+                    {
+                        Program.Form.tburl.Text = url;
+                    }));
+
                     Log.LogMessage("Conectado");
                     return client.Connected;
                 }
@@ -121,10 +126,7 @@ namespace SSPFS.DesktopHost
                 {
                     if ((DateTime.Now - last_keepalive_sent).TotalSeconds > 2)
                     {
-                        lock (host_data_connection_lock)
-                        {
-                            send_keepalive();
-                        }
+                        send_keepalive();
                     }
                 }
 
@@ -137,33 +139,86 @@ namespace SSPFS.DesktopHost
             }
         }
 
-        private void send_keepalive()
+        private string request_remote_url()
         {
-            long command = 2;
+            long command = 3;
             byte[] packet_bytes = new byte[16].Concat(BitConverter.GetBytes(command)).ToArray();
             client.GetStream().Write(packet_bytes, 0, packet_bytes.Length);
+
+            //esperamos a que haya datos disponibles y devolvemos la URL.
+            while (client.Available <= 0)
+            {
+                //esperamos a recibir la respuesta del servidor
+                Thread.Sleep(100);
+            }
+
+            var stream = client.GetStream();
+            byte[] buffer = new byte[4];
+            stream.Read(buffer, 0, 4);
+            int length = BitConverter.ToInt32(buffer, 0);
+            buffer = new byte[length];
+            stream.Read(buffer, 0, length);
+            return Encoding.UTF8.GetString(buffer);
         }
 
-        private void ProcessIncomingPacket(Guid request, int code, long length, NetworkStream stream)
+        private void send_keepalive()
         {
-            //listar ficheros
-            if (code == 1)
+            lock (host_data_connection_lock)
             {
-                //listar fichero.
-                if (length > 0)
-                    throw new Exception("Bad code 0");
+                long command = 2;
+                byte[] packet_bytes = new byte[16].Concat(BitConverter.GetBytes(command)).ToArray();
+                client.GetStream().Write(packet_bytes, 0, packet_bytes.Length);
+            }
+        }
 
-                //montamos el paquete respuesta
-                var files = string.Join("|", Directory.GetFiles(folder).Select(x => Path.GetFileName(x)));
-                byte[] response_bytes = Encoding.UTF8.GetBytes(files);
+        private void ProcessIncomingPacket(Guid request_identifier, int code, long length, NetworkStream stream)
+        {
 
-                //ignoramos el data de recepción, por ser una peticion de listado.
-                var response_length = Convert.ToInt64(response_bytes.Length);
-                lock (host_data_connection_lock)
-                {
-                    stream.Write(request.ToByteArray().Concat(BitConverter.GetBytes(response_length)).ToArray(), 0, 24);
-                    stream.Write(response_bytes, 0, response_bytes.Length);
-                }
+
+
+            //listar ficheros
+            switch (code)
+            {
+                case 1:
+                    //listar fichero.
+                    if (length > 0)
+                        throw new Exception("Bad code 0");
+
+                    //montamos el paquete respuesta
+                    var files = string.Join("|", Directory.GetFiles(folder).Select(x => Path.GetFileName(x)));
+                    byte[] response_bytes = Encoding.UTF8.GetBytes(files);
+
+                    //ignoramos el data de recepción, por ser una peticion de listado.
+                    var response_length = Convert.ToInt64(response_bytes.Length);
+                    lock (host_data_connection_lock)
+                    {
+                        stream.Write(request_identifier.ToByteArray().Concat(BitConverter.GetBytes(response_length)).ToArray(), 0, 24);
+                        stream.Write(response_bytes, 0, response_bytes.Length);
+                    }
+                    break;
+                case 4:
+
+                    byte[] filename_bytes = new byte[length];
+                    stream.Read(filename_bytes, 0, (int)length);
+
+                    string filename = Path.Combine(folder, Encoding.UTF8.GetString(filename_bytes));
+                    int readen = 0, this_read;
+                    using (var fs = File.OpenRead(filename))
+                    {
+                        byte[] file_bytes = new byte[4096];
+                        lock (host_data_connection_lock)
+                        {
+                            stream.Write(request_identifier.ToByteArray().Concat(BitConverter.GetBytes(fs.Length)).ToArray(), 0, 24);
+                            while (readen < fs.Length)
+                            {
+                                this_read = fs.Read(file_bytes, 0, 4096);
+                                readen += this_read;
+
+                                stream.Write(file_bytes, 0, this_read);
+                            }
+                        }
+                    }
+                    break;
             }
         }
 

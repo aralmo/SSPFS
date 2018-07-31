@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Mime;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -20,17 +22,42 @@ namespace SSPFS.Web.Controllers
             _serverApi = serverApi;
         }
 
-        public IActionResult Index(Guid id)
+        public async Task<IActionResult> Index(Guid id)
         {
             ViewBag.RepoId = id;
-            var files = _serverApi.ListFiles(id);
+            var files = await _serverApi.ListFiles(id);
             return View(files);
         }
 
-        public IActionResult Download(Guid id, string name)
+        public async Task<IActionResult> Download(Guid id, string name)
         {
-            var stream = _serverApi.DownloadFile(id, name);
-            return File(stream, System.Net.Mime.MediaTypeNames.Application.Octet, name);
+            //todo: hacer funcionar con piping para evitar sobre-cargar la memoria.
+            var result = await _serverApi.DownloadFile(id, name);
+
+            Response.ContentLength = result.length;
+            Response.ContentType = MediaTypeNames.Application.Octet;
+            Response.Headers["Content-Disposition"] = new ContentDisposition() {
+                DispositionType = DispositionTypeNames.Attachment,
+                FileName = name
+            }.ToString();
+
+            CopyTo(result.stream, Response.Body, result.length);
+
+            result.RequestContentDownloadedTrigger();
+
+            return Ok();
+        }
+        private void CopyTo(Stream from, Stream to, int length, int buffer_size = 1024)
+        {
+            byte[] buffer = new byte[buffer_size];
+            int pending_bytes = length;
+            int readen_bytes;
+            while (pending_bytes > 0)
+            {
+                readen_bytes = from.Read(buffer, 0, buffer.Length);
+                to.Write(buffer, 0, readen_bytes);
+                pending_bytes -= readen_bytes;
+            }
         }
 
         [HttpPost]
@@ -43,3 +70,4 @@ namespace SSPFS.Web.Controllers
         }
     }
 }
+
