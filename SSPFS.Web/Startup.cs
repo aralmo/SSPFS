@@ -22,6 +22,8 @@ namespace SSPFS.Web
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
+            services.AddSignalR();
+            ServerAPI.Current = new ServerAPI();
             services.AddSingleton<ServerAPI>(ServerAPI.Current);
         }
 
@@ -39,12 +41,18 @@ namespace SSPFS.Web
 
             app.UseStaticFiles();
 
+            app.UseSignalR(routes =>
+            {
+                routes.MapHub<Hubs.DocBoxHub>("/docboxhub");
+            });
+
             app.UseMvc(routes =>
             {
                 routes.MapRoute(
                     name: "default",
                     template: "{controller=Home}/{action=Index}/{id?}");
             });
+
         }
     }
 }
