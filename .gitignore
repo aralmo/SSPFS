@@ -32,3 +32,4 @@ packages
 IAudit.Servicing/service_routes.xml
 IAudit.Sandcastle/
 .vs/
+.vscode/
