@@ -25,6 +25,8 @@ namespace SSPFS
         /// </summary>
         public event RemoteFolderDisconnectedEventHandler RemoteFolderDisconnected;
 
+        string BasePath = "/home/yoni/Documentos/Repos/Docs";
+
         /// <summary>
         /// Método que reporta a la api de servidor cuando ha cambiado el contenido de uno de los hosts
         /// </summary>
@@ -61,10 +63,10 @@ namespace SSPFS
                 {
                     Thread.Sleep(10);
 
-                    //if ((DateTime.Now - start_time).TotalMinutes >= 1)
-                    //    throw new TimeoutException("ListFiles");
+                    if ((DateTime.Now - start_time).TotalMinutes >= 1)
+                        throw new TimeoutException("ListFiles");
                 }
-
+                client.CurrentStatus = HostClientStatusEnum.Listening;
                 return result;
             });
 
@@ -75,7 +77,7 @@ namespace SSPFS
 
                  byte[] content = new byte[length];
                  stream.Read(content, 0, (int)length);
-                 result = Encoding.Default.GetString(content, 0, (int)length).Split(new char[] { '|' })
+                 result = Encoding.UTF8.GetString(content, 0, (int)length).Split(new char[] { '|' })
                             .Select(x => new RemoteFile(x));
 
                  is_finished = true;
@@ -92,7 +94,8 @@ namespace SSPFS
         /// <param name="file"></param>
         public void UploadFile(Guid identifier, string filename, Stream file)
         {
-            throw new NotImplementedException();
+            using (var result = File.Create(Path.Combine(BasePath, identifier.ToString(), filename)))
+                file.CopyTo(result);
         }
 
         /// <summary>
@@ -102,20 +105,70 @@ namespace SSPFS
         /// <param name="filename"></param>
         /// <param name="file"></param>
         /// <returns></returns>
-        public Stream DownloadFile(Guid identifier, string filename, Stream file)
+        public struct DownloadFileResult
         {
-            throw new NotImplementedException();
+            public Stream stream;
+            public int length;
+            public Action RequestContentDownloadedTrigger;
         }
 
-        /// <summary>
-        /// Hace una solicitud al cliente indicado y ejecuta el callback pasado como parámetro al ser respondida.
-        /// </summary>
-        /// <param name="request"></param>
-        /// <param name="callback"></param>
-        public static void RequestToClient(Guid client_id, byte[] request, ServerHost.ProcessClientResponseDelegateHandler callback)
+        public async Task<DownloadFileResult> DownloadFile(Guid identifier, string filename)
         {
-            ServerHost.Current.Hosts.TryGetValue(client_id, out HostClient client);
-            client.EnqueueRequest(request, callback);
-        }
+
+            var client = ServerHost.Current.Hosts[identifier];
+            if (client == null)
+                throw new Exception("El cliente especificado no existe.");
+
+            bool is_finished = false;
+
+            Stream result = null;
+            int result_length = 0;
+
+            var task = Task<Stream>.Run(() =>
+            {
+                DateTime start_time = DateTime.Now;
+
+                while (!is_finished)
+                {
+                    Thread.Sleep(10);
+
+                    if ((DateTime.Now - start_time).TotalMinutes >= 1)
+                        throw new TimeoutException("Download File");
+                }
+
+                return new DownloadFileResult()
+                {
+                    stream = result,
+                    length = result_length,
+                    RequestContentDownloadedTrigger = () =>
+                    {
+                        client.CurrentStatus = HostClientStatusEnum.Listening;
+                    }
+            };
+        });
+
+            client.EnqueueRequest(PacketBuilder.RequestFileForDownload(filename) , (stream, length) =>
+            {
+                if (length > int.MaxValue)
+                    throw new Exception("Too much to handle");
+
+        result = stream;
+                result_length = (int) length;
+        is_finished = true;
+            });
+
+            return await task;
+}
+
+/// <summary>
+/// Hace una solicitud al cliente indicado y ejecuta el callback pasado como parámetro al ser respondida.
+/// </summary>
+/// <param name="request"></param>
+/// <param name="callback"></param>
+public static void RequestToClient(Guid client_id, byte[] request, ServerHost.ProcessClientResponseDelegateHandler callback)
+{
+    ServerHost.Current.Hosts.TryGetValue(client_id, out HostClient client);
+    client.EnqueueRequest(request, callback);
+}
     }
 }

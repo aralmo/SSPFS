@@ -1,0 +1,64 @@
+@model IEnumerable<SSPFS.RemoteFile>
+
+<h2>Documentos</h2>
+<h3>Listado</h3>
+
+<button id="browse" class="btn btn-primary">Seleccionar ficheros</button>
+<button id="start-upload" class="btn btn-success" >Subir</button>
+<ul id=filelist>
+
+</ul>
+<table class="table table-bordered table-striped" id="files">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach(var item in Model)
+        {
+            <tr>
+                <td>
+                    <a href="@Url.Action(nameof(SSPFS.Web.Controllers.DocBoxController.Download), new { id = ViewBag.RepoId, name = @item.Name })">@item.Name</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts
+{
+    <script>
+        var uploader = new plupload.Uploader({
+        drop_element : 'files',
+        browse_button: 'browse',
+            url: '/docbox/upload/@ViewBag.RepoId'
+        });
+
+        uploader.init();
+
+        uploader.bind('FilesAdded', function(up, files) {
+            var html = '';
+            plupload.each(files, function(file) {
+                html += '<li id="' + file.id + '">' + file.name + ' (' + plupload.formatSize(file.size) + ') <b></b></li>';
+            });
+            document.getElementById('filelist').innerHTML += html;
+
+            up.start();
+        });
+
+        uploader.bind('UploadProgress', function(up, file) {
+            document.getElementById(file.id).getElementsByTagName('b')[0].innerHTML = '<span>' + file.percent + "%</span>";
+        });
+
+        uploader.bind('Error', function(up, err) {
+            document.getElementById('console').innerHTML += "\nError #" + err.code + ": " + err.message;
+        });
+
+        uploader.bind('UploadComplete', function(up, files){
+            location.reload();
+        });
+
+    </script>
+}
+   
