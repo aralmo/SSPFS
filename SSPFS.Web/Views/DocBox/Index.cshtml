@@ -1,10 +1,8 @@
 @model IEnumerable<SSPFS.RemoteFile>
 
 <h2>Documentos</h2>
-<h3>Listado</h3>
 
-<button id="browse" class="btn btn-primary">Seleccionar ficheros</button>
-<button id="start-upload" class="btn btn-success" >Subir</button>
+<button id="browse" class="btn btn-primary">Subir ficheros</button>
 <ul id=filelist>
 
 </ul>
@@ -29,6 +27,8 @@
 @section Scripts
 {
     <script>
+        var uploading = false;
+
         var uploader = new plupload.Uploader({
         drop_element : 'files',
         browse_button: 'browse',
@@ -43,7 +43,7 @@
                 html += '<li id="' + file.id + '">' + file.name + ' (' + plupload.formatSize(file.size) + ') <b></b></li>';
             });
             document.getElementById('filelist').innerHTML += html;
-
+            uploading = true;
             up.start();
         });
 
@@ -65,7 +65,8 @@
             .build();
 
         connection.on("FolderHasChanged", () => {
-            location.reload();
+            if(!uploading)
+                location.reload();
         });
 
         connection.start()
