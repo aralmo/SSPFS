@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -40,5 +41,6 @@ namespace SSPFS.Web
                 return content == null ? bytes.ToArray() : bytes.Concat(content).ToArray();
             }
         }
+
     }
 }

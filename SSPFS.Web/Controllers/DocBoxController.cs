@@ -55,7 +55,7 @@ namespace SSPFS.Web.Controllers
             int readen_bytes;
             while (pending_bytes > 0)
             {
-                readen_bytes = from.Read(buffer, 0, buffer.Length);
+                readen_bytes = from.Read(buffer, 0, Math.Min(pending_bytes,buffer.Length));
                 to.Write(buffer, 0, readen_bytes);
                 pending_bytes -= readen_bytes;
             }
@@ -66,7 +66,7 @@ namespace SSPFS.Web.Controllers
         [DisableRequestSizeLimit]
         public IActionResult Upload(Guid id, IFormFile file)
         {
-            _serverApi.UploadFile(id, file.FileName, file.OpenReadStream());
+            _serverApi.UploadFile(id, file.FileName,file.Length, file.OpenReadStream());
             return Json(new { OK = 1 });
         }
 

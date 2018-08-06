@@ -173,9 +173,6 @@ namespace SSPFS.DesktopHost
 
         private void ProcessIncomingPacket(Guid request_identifier, int code, long length, NetworkStream stream)
         {
-
-
-
             //listar ficheros
             switch (code)
             {
@@ -211,7 +208,7 @@ namespace SSPFS.DesktopHost
                             stream.Write(request_identifier.ToByteArray().Concat(BitConverter.GetBytes(fs.Length)).ToArray(), 0, 24);
                             while (readen < fs.Length)
                             {
-                                this_read = fs.Read(file_bytes, 0, 4096);
+                                this_read = fs.Read(file_bytes, 0,Math.Min((int)fs.Length - readen,file_bytes.Length));
                                 readen += this_read;
 
                                 stream.Write(file_bytes, 0, this_read);
@@ -219,8 +216,72 @@ namespace SSPFS.DesktopHost
                         }
                     }
                     break;
+                case 5:
+                    lock (host_data_connection_lock)
+                    {
+                        byte[] blong_nombre_fichero = new byte[4];
+                        byte[] blongitud_fichero = new byte[8];
+                        byte[] bnombre_fichero;
+                        long longitud_fichero;
+                        string nombre_fichero;
+
+                        stream.Read(blong_nombre_fichero, 0, 4);
+                        stream.Read(blongitud_fichero, 0, 8);
+
+                        bnombre_fichero = new Byte[BitConverter.ToInt32(blong_nombre_fichero, 0)];
+                        stream.Read(bnombre_fichero, 0, bnombre_fichero.Length);
+                        nombre_fichero = Encoding.UTF8.GetString(bnombre_fichero);
+                        longitud_fichero = BitConverter.ToInt64(blongitud_fichero, 0);
+
+                        //calcula un nombre para el fichero
+                        string full_filename = get_new_filename(folder, nombre_fichero);
+
+                        int readen_bytes = 0;
+                        int this_read_bytes = 0;
+                        byte[] buffer = new byte[4096];
+                        int tamaño_fichero = (int) longitud_fichero;
+                        using (var fs = File.Create(full_filename))
+                        {
+                            while (readen_bytes < longitud_fichero)
+                            {
+                                this_read_bytes = stream.Read(buffer, 0,Math.Min(tamaño_fichero - readen_bytes,buffer.Length));
+                                readen_bytes += this_read_bytes;
+
+                                fs.Write(buffer, 0, this_read_bytes);
+                            }
+                        }
+                    }
+                    break;
             }
         }
 
+        private string get_new_filename(string folder, string nombre_fichero)
+        {
+            if (File.Exists(Path.Combine(folder, nombre_fichero)))
+            {
+                string extension = Path.GetExtension(nombre_fichero);
+                string filename = Path.GetFileNameWithoutExtension(nombre_fichero);
+                int n = 1;
+
+                while (File.Exists(Path.Combine(folder, $"{filename}_{n}.{extension}")))
+                    n++;
+
+                return Path.Combine(folder, $"{filename}_{n}.{extension}");
+            }
+            else
+            {
+                return Path.Combine(folder, nombre_fichero);
+            }
+        }
+
+        public void ReportDirectoryChangesToServer()
+        {
+            lock (host_data_connection_lock)
+            {
+                long command = 1;
+                byte[] packet_bytes = new byte[16].Concat(BitConverter.GetBytes(command)).ToArray();
+                client.GetStream().Write(packet_bytes, 0, packet_bytes.Length);
+            }
+        }
     }
 }

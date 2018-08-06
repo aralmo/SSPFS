@@ -17,10 +17,10 @@ namespace SSPFS
 
         private object request_queue_lock = new object();
         private List<Request> requests_queue = new List<Request>();
-        private object requests_queue_lock = new object();
+        internal object requests_queue_lock = new object();
 
         public Guid Identifier { get; } = Guid.NewGuid();
-        private TcpClient client;
+        internal TcpClient tcp_client;
 
         /// <summary>
         /// Indica si el cliente está conectado y funcionando.
@@ -29,7 +29,7 @@ namespace SSPFS
         {
             get
             {
-                return client.Connected;
+                return tcp_client.Connected;
             }
         }
 
@@ -37,21 +37,21 @@ namespace SSPFS
         public static HostClient ForClient(TcpClient client)
         {
             HostClient new_client = new HostClient();
-            new_client.client = client;
+            new_client.tcp_client = client;
             return new_client;
         }
         public void ProcessPendingMessages()
         {
 
             //Si el cliente perdió la conexión lanzamos el evento y petamos como dios.
-            if (!client.Connected)
+            if (!tcp_client.Connected)
             {
                 ServerAPI.Current.ReportRemoteHostDisconnect(Identifier);
                 ServerHost.Current.Hosts.TryRemove(Identifier, out _);
                 return;
             }
 
-            var stream = client.GetStream();
+            var stream = tcp_client.GetStream();
 
             //Estamos escuchando al cliente?
             if (CurrentStatus == HostClientStatusEnum.Listening)
@@ -128,7 +128,7 @@ namespace SSPFS
                     byte[] url_bytes = Encoding.UTF8.GetBytes(url);
                     int size = url_bytes.Length;
                     var pck = BitConverter.GetBytes(size).Concat(url_bytes).ToArray();
-                    client.GetStream().Write(pck, 0, pck.Length);
+                    tcp_client.GetStream().Write(pck, 0, pck.Length);
                 }
             }
         }
@@ -154,14 +154,14 @@ namespace SSPFS
 
             lock (requests_queue_lock)
             {
-                client.GetStream().Write(request_bytes, 0, request_bytes.Length);
+                tcp_client.GetStream().Write(request_bytes, 0, request_bytes.Length);
             }
         }
 
         internal void Disconnect()
         {
             //Cerramos la conexión TCP
-            client.Close();
+            tcp_client.Close();
         }
 
         /// <summary>

@@ -13,7 +13,7 @@ namespace SSPFS.DesktopHost
 {
     public partial class MainForm : Form
     {
-
+        FileSystemWatcher watcher;
         string folder;
         public MainForm(string target_folder)
         {
@@ -21,7 +21,19 @@ namespace SSPFS.DesktopHost
                 throw new DirectoryNotFoundException();
 
             folder = target_folder;
+
+            watcher = new FileSystemWatcher(target_folder);
+            watcher.EnableRaisingEvents = true;
+            watcher.Created += Watcher_Changed;
+            watcher.Deleted += Watcher_Changed;
+
             InitializeComponent();
+        }
+
+        private void Watcher_Changed(object sender, FileSystemEventArgs e)
+        {
+            //enviar una señal al servidor para aactualizar por signalr 
+            Client.Current.ReportDirectoryChangesToServer();
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -34,12 +46,12 @@ namespace SSPFS.DesktopHost
         {
             if (button1.Text == ">>")
             {
-                this.Height = 264;
+                this.Height = 292;
                 button1.Text = "<<";
             }
             else
             {
-                this.Height = 119;
+                this.Height = 146;
                 button1.Text = ">>";
             }
         }

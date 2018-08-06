@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -20,7 +21,7 @@ namespace SSPFS.Web
         public static void Main(string[] args)
         {
             //iniciamos el host que va a escuchar por las solicitudes de compartir de los clientes de escrotorio
-            ServerAPI.Current = new ServerAPI();
+            ServerAPI.Current = new ServerAPI();            
             ServerHost host = new ServerHost(new System.Net.IPEndPoint(IPAddress.Any, 1666));
             ServerHost.Current = host;
             host.Start();

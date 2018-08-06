@@ -23,7 +23,6 @@ namespace SSPFS.Web
         {
             services.AddMvc();
             services.AddSignalR();
-            ServerAPI.Current = new ServerAPI();
             services.AddSingleton<ServerAPI>(ServerAPI.Current);
         }
 

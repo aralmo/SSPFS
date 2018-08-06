@@ -8,6 +8,7 @@ namespace SSPFS.Web
     public enum PacketTypeEnum
     {
         ListFiles = 1,
-        DownloadFile = 4
+        DownloadFile = 4,
+        UploadFile= 5,
     }
 }

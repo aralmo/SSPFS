@@ -1,4 +1,5 @@
-﻿using SSPFS.Web;
+﻿using Microsoft.AspNetCore.SignalR;
+using SSPFS.Web;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -33,7 +34,8 @@ namespace SSPFS
         /// <param name="client_identifier"></param>
         public void ReportRemoteHostChanged(Guid client_identifier)
         {
-            RemoteFolderHasChanged?.Invoke(client_identifier);
+            var context = (IHubContext<Web.Hubs.DocBoxHub>)Program.Services.GetService(typeof(IHubContext<Web.Hubs.DocBoxHub>));
+            context.Clients.Group(client_identifier.ToString()).SendAsync("FolderHasChanged");
         }
 
         public void ReportRemoteHostDisconnect(Guid client_identifier)
@@ -92,10 +94,49 @@ namespace SSPFS
         /// <param name="identifier"></param>
         /// <param name="filename"></param>
         /// <param name="file"></param>
-        public void UploadFile(Guid identifier, string filename, Stream file)
+        public void UploadFile(Guid identifier, string filename, long file_size, Stream file)
         {
-            using (var result = File.Create(Path.Combine(BasePath, identifier.ToString(), filename)))
-                file.CopyTo(result);
+            var client = ServerHost.Current.Hosts[identifier];
+            if (client == null)
+                throw new Exception("El cliente especificado no existe.");
+
+            //client.EnqueueRequest(PacketBuilder.UploadFile(filename,long_size, file), (stream, length) => { });
+
+            var filename_bytes = Encoding.UTF8.GetBytes(filename);
+            BitConverter.GetBytes(filename_bytes.Length)
+                .Concat(BitConverter.GetBytes(file_size))
+                .Concat(filename_bytes);
+
+            lock (client.requests_queue_lock)
+            {
+                var longitud_paquete = 12 + filename_bytes.Length + (int)file_size;
+                var client_stream = client.tcp_client.GetStream();
+
+                var bytes = Guid.Empty.ToByteArray()
+                    .Concat(BitConverter.GetBytes((int)PacketTypeEnum.UploadFile))
+                    .Concat(BitConverter.GetBytes((long)longitud_paquete)).ToArray();
+
+                client_stream.Write(bytes, 0, bytes.Length);
+
+                bytes = BitConverter.GetBytes(filename_bytes.Length) //hasta aquí es la cabecera
+                     .Concat(BitConverter.GetBytes(file_size))
+                     .Concat(filename_bytes).ToArray();
+
+                client_stream.Write(bytes, 0, bytes.Length);
+
+                int readen = 0;
+                int this_read;
+                byte[] buffer = new byte[4096];
+                while (readen < file_size)
+                {
+                    this_read = file.Read(buffer, 0, buffer.Length);
+                    readen += this_read;
+
+                    client_stream.Write(buffer, 0, this_read);
+                }
+
+            }
+
         }
 
         /// <summary>
@@ -144,31 +185,31 @@ namespace SSPFS
                     {
                         client.CurrentStatus = HostClientStatusEnum.Listening;
                     }
-            };
-        });
-
-            client.EnqueueRequest(PacketBuilder.RequestFileForDownload(filename) , (stream, length) =>
-            {
-                if (length > int.MaxValue)
-                    throw new Exception("Too much to handle");
-
-        result = stream;
-                result_length = (int) length;
-        is_finished = true;
+                };
             });
 
-            return await task;
-}
+            client.EnqueueRequest(PacketBuilder.RequestFileForDownload(filename), (stream, length) =>
+           {
+               if (length > int.MaxValue)
+                   throw new Exception("Too much to handle");
 
-/// <summary>
-/// Hace una solicitud al cliente indicado y ejecuta el callback pasado como parámetro al ser respondida.
-/// </summary>
-/// <param name="request"></param>
-/// <param name="callback"></param>
-public static void RequestToClient(Guid client_id, byte[] request, ServerHost.ProcessClientResponseDelegateHandler callback)
-{
-    ServerHost.Current.Hosts.TryGetValue(client_id, out HostClient client);
-    client.EnqueueRequest(request, callback);
-}
+               result = stream;
+               result_length = (int)length;
+               is_finished = true;
+           });
+
+            return await task;
+        }
+
+        /// <summary>
+        /// Hace una solicitud al cliente indicado y ejecuta el callback pasado como parámetro al ser respondida.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="callback"></param>
+        public static void RequestToClient(Guid client_id, byte[] request, ServerHost.ProcessClientResponseDelegateHandler callback)
+        {
+            ServerHost.Current.Hosts.TryGetValue(client_id, out HostClient client);
+            client.EnqueueRequest(request, callback);
+        }
     }
 }
