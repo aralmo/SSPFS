@@ -26,6 +26,9 @@ namespace SSPFS.Web
             services.AddSignalR();
             services.AddSingleton<ServerAPI>(ServerAPI.Current);
             services.AddSingleton(Configuration);
+
+            //inyectamos la configuración de dominio en hostclient
+            HostClient.HostAddress = Configuration.GetValue<string>("HostAddress")
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
