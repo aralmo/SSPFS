@@ -22,6 +22,8 @@ namespace SSPFS
         public Guid Identifier { get; } = Guid.NewGuid();
         internal TcpClient tcp_client;
 
+        public static string HostAddress { get;set; } = "http://localhost";
+
         /// <summary>
         /// Indica si el cliente está conectado y funcionando.
         /// </summary>
@@ -124,8 +126,7 @@ namespace SSPFS
                 if (message_code == 3)
                 {
                     //solicitud de URL de acceso externa
-                    string url = "http://localhost:22675/docbox/index/" + Identifier.ToString();
-                    byte[] url_bytes = Encoding.UTF8.GetBytes(url);
+                    string url =  $"{HostAddress}/docbox/index/{Identifier.ToString()}";                    byte[] url_bytes = Encoding.UTF8.GetBytes(url);
                     int size = url_bytes.Length;
                     var pck = BitConverter.GetBytes(size).Concat(url_bytes).ToArray();
                     tcp_client.GetStream().Write(pck, 0, pck.Length);

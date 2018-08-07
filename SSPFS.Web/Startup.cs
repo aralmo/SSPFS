@@ -14,6 +14,7 @@ namespace SSPFS.Web
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
+
         }
 
         public IConfiguration Configuration { get; }
@@ -24,6 +25,7 @@ namespace SSPFS.Web
             services.AddMvc();
             services.AddSignalR();
             services.AddSingleton<ServerAPI>(ServerAPI.Current);
+            services.AddSingleton(Configuration);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

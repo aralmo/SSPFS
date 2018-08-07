@@ -33,8 +33,10 @@ namespace SSPFS.Web
         }
 
         public static IWebHost BuildWebHost(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
+            WebHost.CreateDefaultBuilder(args)          
                 .UseStartup<Startup>()
+                .UseKestrel()
+                .UseIISIntegration()
                 .Build();
     }
 }
