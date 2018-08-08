@@ -36,9 +36,9 @@ namespace SSPFS
             {
                 while (true)
                 {
-                    try
+                    foreach (var host in Hosts)
                     {
-                        foreach (var host in Hosts)
+                        try
                         {
                             //si el host se ha desconectado, lo borramos de la lista y continuamos con el siguiente
                             if (!host.Value.IsConnected)
@@ -49,10 +49,10 @@ namespace SSPFS
 
                             host.Value.ProcessPendingMessages();
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        //todo: tratar los errores del hilo de actualización
+                        catch (Exception ex)
+                        {
+                            //todo: tratar los errores del hilo de actualización
+                        }
                     }
                     Thread.Sleep(10);
                 }
