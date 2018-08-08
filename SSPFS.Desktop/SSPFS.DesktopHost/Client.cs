@@ -18,7 +18,8 @@ namespace SSPFS.DesktopHost
 
         string folder;
         public static object host_data_connection_lock = new object();
-        const string Host = "127.0.0.1";
+        //const string Host = "euve255872.serverprofi24.net";
+        const string Host = "localhost";
         const int Port = 1666;
 
         Task Connection_daemon;
@@ -111,7 +112,10 @@ namespace SSPFS.DesktopHost
                 if (!client.Connected)
                 {
                     //intentamos conectar el cliente
-                    client.Connect(new IPEndPoint(IPAddress.Parse(Host), Port));
+                    Log.LogMessage($"Resolviendo host {Host}");
+
+                    var ip = Dns.Resolve(Host);
+                    client.Connect(new IPEndPoint(ip.AddressList.FirstOrDefault()?.MapToIPv4(), Port));
                     string url = request_remote_url();
 
                     Program.Form.Invoke(new MethodInvoker(() =>
@@ -177,6 +181,8 @@ namespace SSPFS.DesktopHost
             switch (code)
             {
                 case 1:
+                    Log.LogMessage("-> Listado de ficheros.");
+
                     //listar fichero.
                     if (length > 0)
                         throw new Exception("Bad code 0");
@@ -195,10 +201,15 @@ namespace SSPFS.DesktopHost
                     break;
                 case 4:
 
+
                     byte[] filename_bytes = new byte[length];
                     stream.Read(filename_bytes, 0, (int)length);
 
                     string filename = Path.Combine(folder, Encoding.UTF8.GetString(filename_bytes));
+
+                    Log.LogMessage($"-> Enviando fichero {filename}");
+
+
                     int readen = 0, this_read;
                     using (var fs = File.OpenRead(filename))
                     {
@@ -235,6 +246,8 @@ namespace SSPFS.DesktopHost
 
                         //calcula un nombre para el fichero
                         string full_filename = get_new_filename(folder, nombre_fichero);
+
+                        Log.LogMessage($"-> Descargando fichero {nombre_fichero}");
 
                         int readen_bytes = 0;
                         int this_read_bytes = 0;
