@@ -18,8 +18,8 @@ namespace SSPFS.DesktopHost
 
         string folder;
         public static object host_data_connection_lock = new object();
-        //const string Host = "euve255872.serverprofi24.net";
-        const string Host = "localhost";
+        const string Host = "euve255872.serverprofi24.net";
+        //const string Host = "localhost";
         const int Port = 1666;
 
         Task Connection_daemon;
@@ -51,7 +51,7 @@ namespace SSPFS.DesktopHost
                     {
                         Program.Form.Invoke(new MethodInvoker(() =>
                         {
-                            Program.Form.lbEstado.Text = "Reconectando...";
+                            Program.Form.lbEstado.Text = "Conectando...";
                             Program.Form.lbEstado.ForeColor = Color.Red;
                         }));
 
@@ -188,7 +188,14 @@ namespace SSPFS.DesktopHost
                         throw new Exception("Bad code 0");
 
                     //montamos el paquete respuesta
+
                     var files = string.Join("|", Directory.GetFiles(folder).Select(x => Path.GetFileName(x)));
+                    
+                    //Si está marcado el check permitimos subida de ficheros.
+                    if (Program.Form.cbPermitirSubida.Checked)
+                    {
+                        files = "#upload|" + files;
+                    }
                     byte[] response_bytes = Encoding.UTF8.GetBytes(files);
 
                     //ignoramos el data de recepción, por ser una peticion de listado.
@@ -228,6 +235,13 @@ namespace SSPFS.DesktopHost
                     }
                     break;
                 case 5:
+                    if (!Program.Form.cbPermitirSubida.Checked)
+                    {
+                        Log.LogError("Se intentó subir un fichero sin tener el permiso habilitado, cerrando Socket");
+                        stream.Flush();
+                        return;
+                    }
+
                     lock (host_data_connection_lock)
                     {
                         byte[] blong_nombre_fichero = new byte[4];
@@ -276,10 +290,10 @@ namespace SSPFS.DesktopHost
                 string filename = Path.GetFileNameWithoutExtension(nombre_fichero);
                 int n = 1;
 
-                while (File.Exists(Path.Combine(folder, $"{filename}_{n}.{extension}")))
+                while (File.Exists(Path.Combine(folder, $"{filename}_{n}{extension}")))
                     n++;
 
-                return Path.Combine(folder, $"{filename}_{n}.{extension}");
+                return Path.Combine(folder, $"{filename}_{n}{extension}");
             }
             else
             {

@@ -25,6 +25,10 @@ namespace SSPFS.Web.Controllers
 
         public async Task<IActionResult> Index(Guid id)
         {
+            var client = ServerHost.Current.Hosts[id];
+            if (client == null)
+                return View("NoEncontrado");
+
             ViewBag.RepoId = id;
             var files = await _serverApi.ListFiles(id);
             return View(files);

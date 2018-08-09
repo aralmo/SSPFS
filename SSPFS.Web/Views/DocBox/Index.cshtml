@@ -1,11 +1,12 @@
 @model IEnumerable<SSPFS.RemoteFile>
+@if (Model.FirstOrDefault()?.Path == "#upload")
+{
 
-<h2>Documentos</h2>
+    <button id="browse" class="btn btn-primary">Subir ficheros</button>
 
-<button id="browse" class="btn btn-primary">Subir ficheros</button>
-<ul id=filelist>
+    <ul id=filelist></ul>
+}
 
-</ul>
 <table class="table table-bordered table-striped" id="files">
     <thead>
         <tr>
@@ -13,7 +14,7 @@
         </tr>
     </thead>
     <tbody>
-        @foreach(var item in Model)
+        @foreach (var item in Model.Where(x => x.Path != "#upload"))
         {
             <tr>
                 <td>
@@ -25,13 +26,14 @@
 </table>
 
 @section Scripts
-{
+    {
     <script>
         var uploading = false;
 
         var uploader = new plupload.Uploader({
         drop_element : 'files',
-        browse_button: 'browse',
+            browse_button: 'browse',
+            max_file_size: '500MB',
             url: '/docbox/upload/@ViewBag.RepoId'
         });
 
@@ -77,4 +79,3 @@
 
     </script>
 }
-   

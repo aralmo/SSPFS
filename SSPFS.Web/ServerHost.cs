@@ -41,7 +41,8 @@ namespace SSPFS
                         try
                         {
                             //si el host se ha desconectado, lo borramos de la lista y continuamos con el siguiente
-                            if (!host.Value.IsConnected)
+                            //si no se ha recibido un keep alive en un minuto también lo eliminamos.
+                            if (!host.Value.IsConnected || (DateTime.Now - host.Value.last_keep_alive).TotalMinutes > 1F)
                             {
                                 Hosts.TryRemove(host.Key, out HostClient h);
                                 continue;

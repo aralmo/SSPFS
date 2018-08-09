@@ -60,5 +60,11 @@ namespace SSPFS.DesktopHost
         {
             Clipboard.SetText(tburl.Text);
         }
+
+        private void cbPermitirSubida_CheckedChanged(object sender, EventArgs e)
+        {
+            //para que se esconda o muestre el botón subir ficheros según el estado del check.
+            Client.Current.ReportDirectoryChangesToServer();
+        }
     }
 }

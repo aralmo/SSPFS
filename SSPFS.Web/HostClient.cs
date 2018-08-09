@@ -19,6 +19,8 @@ namespace SSPFS
         private List<Request> requests_queue = new List<Request>();
         internal object requests_queue_lock = new object();
 
+        internal DateTime last_keep_alive = DateTime.Now;
+
         public Guid Identifier { get; } = Guid.NewGuid();
         internal TcpClient tcp_client;
 
@@ -121,12 +123,14 @@ namespace SSPFS
                 }
                 if (message_code == 2)
                 {
-                    //do nothing it's a keep alive.
+                    //keep alive.
+                    last_keep_alive = DateTime.Now;
                 }
                 if (message_code == 3)
                 {
                     //solicitud de URL de acceso externa
-                    string url =  $"{HostAddress}/docbox/index/{Identifier.ToString()}";                    byte[] url_bytes = Encoding.UTF8.GetBytes(url);
+                    string url =  $"{HostAddress}/docbox/index/{Identifier.ToString()}";
+                    byte[] url_bytes = Encoding.UTF8.GetBytes(url);
                     int size = url_bytes.Length;
                     var pck = BitConverter.GetBytes(size).Concat(url_bytes).ToArray();
                     tcp_client.GetStream().Write(pck, 0, pck.Length);
